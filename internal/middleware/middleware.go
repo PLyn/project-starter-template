@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/a-h/templ"
 )
 
 type CustomContext struct {
@@ -17,19 +15,25 @@ type CustomContext struct {
 type CustomHandler func(ctx *CustomContext, w http.ResponseWriter, r *http.Request)
 type CustomMiddleware func(ctx *CustomContext, w http.ResponseWriter, r *http.Request) error
 
-func Chain(w http.ResponseWriter, r *http.Request, template templ.Component, middleware ...CustomMiddleware) {
-	customContext := &CustomContext{
-		Context:   context.Background(),
-		StartTime: time.Now(),
-	}
-	for _, mw := range middleware {
-		err := mw(customContext, w, r)
-		if err != nil {
-			return
+// Wrap the CustomHandler to integrate with the http.Handler.
+func AdaptHandler(handler CustomHandler, middleware ...CustomMiddleware) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		customContext := &CustomContext{
+			Context:   context.Background(),
+			StartTime: time.Now(),
 		}
+		//Run All middleware functions
+		for _, mw := range middleware {
+			err := mw(customContext, w, r)
+			if err != nil {
+				return
+			}
+		}
+
+		fmt.Println("Run endpoint")
+		handler(customContext, w, r)
+		Log(customContext, w, r)
 	}
-	template.Render(customContext, w)
-	Log(customContext, w, r)
 }
 
 func Log(ctx *CustomContext, w http.ResponseWriter, r *http.Request) error {

@@ -2,7 +2,7 @@ package SSE
 
 import (
 	"bytes"
-	component "cloud/internal/template/components"
+	components "cloud/internal/template/sharedComponents"
 	"context"
 	"fmt"
 	"net/http"
@@ -12,13 +12,13 @@ import (
 	datastar "github.com/starfederation/datastar/sdk/go"
 )
 
-func Feed(w http.ResponseWriter, r *http.Request) {
+func Backup(w http.ResponseWriter, r *http.Request) {
 	sse := datastar.NewSSE(w, r)
 	var buf bytes.Buffer
 	for {
 		buf.Reset()
 		id := uuid.New()
-		replaceHTML := component.Replace("feed", id.String(), time.Now().UTC())
+		replaceHTML := components.Replace("feed", id.String(), time.Now().UTC())
 		replaceHTML.Render(context.Background(), &buf)
 
 		sse.MergeFragments(

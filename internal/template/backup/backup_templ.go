@@ -8,7 +8,7 @@ package backup
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import component "cloud/internal/template/components"
+import component "cloud/internal/template/sharedComponents"
 
 // route!("GET /backup")
 // middleware!(ParseForm)
