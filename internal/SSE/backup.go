@@ -31,5 +31,4 @@ func Backup(w http.ResponseWriter, r *http.Request) {
 		// in this example the feed is called on load, but you could also do it on click, etc
 		time.Sleep(1 * time.Second)
 	}
-
 }

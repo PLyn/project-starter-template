@@ -22,7 +22,6 @@ func main() {
 	mux.Handle("/", middleware.AdaptHandler(handlers.MyHandler))
 	mux.HandleFunc("GET /feed", SSE.Backup)
 
-
 	fmt.Printf("server is running on port %s\n", os.Getenv("PORT"))
 	err := http.ListenAndServe("127.0.0.1:"+os.Getenv("PORT"), mux)
 	if err != nil {
