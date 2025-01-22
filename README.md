@@ -2,7 +2,7 @@
 
 ## Introduction
 
-templ-quickstart provides a quick and easy way to scaffold an Go http server. The tech stack included in this repo includes Go, HTMX, Templ, and Tailwind.
+Custom starter template to get up and running. The underlying stack is Go, Templ, Datastar and tailwind.
 
 ## Core Technologies
 
@@ -10,7 +10,7 @@ As mentioned above, this project depends on some awesome technologies. Let me st
 
 - [Go](https://go.dev/) - Version 1.23 or greater required
 - [Templ](https://templ.guide/)
-- [Air](https://github.com/cosmtrek/air)
+- [Datastar](https://data-star.dev/)
 - [Tailwindcss](https://tailwindcss.com/)
 
 ## Installation
@@ -18,7 +18,7 @@ As mentioned above, this project depends on some awesome technologies. Let me st
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/phillip-england/templ-quickstart <target-directory>
+git clone https://github.com/PLyn/project-starter-template <target-directory>
 ```
 
 ```bash
@@ -71,10 +71,6 @@ air
 
 To configure air, you can modify .air.toml in the root of the project. (it will be auto-generated after the first time you run air in your repo)
 
-### Running all generation and hot reloading commands with a single task
-
-With the tasks.json file in the .vscode folder, you can open the VSCode Command Pallete with CTRL-Shift-P and select run task then 'Run all Dev tools'. This will format go and templ code then open a new integrated shell in VSCode for each command (go fmt, templ fmt, templ generate --watch, tailwind --watch, air).
-
 ## Project Overview
 
 This project has a few core concepts to help you get going, let's start with ./main.go
@@ -95,15 +91,7 @@ mux := http.NewServeMux()
 ```go
 mux.HandleFunc("GET /favicon.ico", view.ServeFavicon)
 mux.HandleFunc("GET /static/", view.ServeStaticFiles)
-mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-    middleware.Chain(w, r, view.Home)
-})
-```
-
-Please take note of this line here as it will be important in the next section when we discuss middleware:
-
-```go
-middleware.Chain(w, r, view.Home)
+mux.Handle("/", middleware.AdaptHandler(handlers.MyHandler))
 ```
 
 3. We serve our application on the PORT defined at ./.env
@@ -117,38 +105,54 @@ if err != nil {
 ```
 ### Middleware - ./internal/middleware/middleware.go
 
-Custom middleware can be implemented with ease in this project. Lets first start with our middleware chain.
-
-This function enables you to tack on middleware at the end of a handler instead of having to deeply-nest middleware components (which is what you would usually expect).
+Custom middleware can be implemented with ease in this project. There is a custom type that has the signature: 
 
 ```go
-
-type CustomContext struct {
-	context.Context
-	StartTime time.Time
-}
-
 type CustomHandler func(ctx *CustomContext, w http.ResponseWriter, r *http.Request)
+```
+which means we can create each of our handlers for the application like this:
 
-type CustomMiddleware func(ctx *CustomContext, w http.ResponseWriter, r *http.Request) error
-
-func Chain(w http.ResponseWriter, r *http.Request, handler CustomHandler, middleware ...CustomMiddleware) {
-	customContext := &CustomContext{
-		Context:   context.Background(),
-		StartTime: time.Now(),
-	}
-	for _, mw := range middleware {
-		err := mw(customContext, w, r)
-		if err != nil {
-			return
-		}
-	}
-	handler(customContext, w, r)
-	Log(customContext, w, r)
+```go
+// Example function using CustomHandler type.
+func MyHandler(ctx *middleware.CustomContext, w http.ResponseWriter, r *http.Request) {
+	...Handler logic here
 }
 ```
 
-You'll notice we are using a few custom types here. In short, this function works by initializing a custom context, iterating through our middleware, and then finally calling our handler and logger. The custom context is passed through each middleware, enabling you to store and access context values throughout the chain. If a middleware returns an error, the chain will stop executing. This enables you to allow your middleware to write responses early and avoid calling the handler in case of an error.
+The reason for doing this is to be able to add a new endpoint in a really simple way. Here is what a possible endpoint with 2 middleware functions to run:
+
+```go
+mux.Handle("/", middleware.AdaptHandler(handlers.MyHandler, AuthMiddleware, LoggingMiddleware))
+```
+
+This is all possible because of the middleware function called AdaptHandler. Here is the main piece that ties it together:
+
+```go
+func AdaptHandler(handler CustomHandler, middleware ...CustomMiddleware) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		customContext := &CustomContext{
+			Context:   context.Background(),
+			StartTime: time.Now(),
+			...Any other fields needed throughout your app
+		}
+
+		//Run all custom middleware functions before Handler runs
+		for _, mw := range middleware {
+			err := mw(customContext, w, r)
+			if err != nil {
+				return
+			}
+		}
+		//run Handler logic
+		handler(customContext, w, r)
+
+		//Run logic after Handler runs
+		Log(customContext, w, r)
+	}
+}
+```
+
+If a middleware returns an error, the chain will stop executing. This enables you to allow your middleware to write responses early and avoid calling the handler in case of an error.
 
 ### Creating Custom Middleware
 
@@ -184,77 +188,62 @@ func LateMiddleware(ctx *CustomContext, w http.ResponseWriter, r *http.Request) 
 
 ```go
 // modified version of ./main.go
-mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-    middleware.Chain(w, r, view.Home, middleware.EarlyMiddleware, middleware.LateMiddleware)
+mux.Handle("/", middleware.AdaptHandler(handlers.MyHandler, middleware.EarlyMiddleware, middleware.LateMiddleware))
 })
 ```
 
 That's it! Easily create custom middleware without the need to deeply nest your routes.
 
-### Views - ./internal/view/view.go
+### SSE endpoints - ./internal/SSE/*.go
 
-Our views are straightforward and rely on templ to generate html content. Here is an example of the Home view found at ./internal/view/view.go
+Datastar heavily uses SSE endpoints and you create a new one as needed to stream raw HTML/content/data/notifications/etc to your web page in realtime.
 
 ```go
-func Home(ctx *middleware.CustomContext, w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" { // catches 404s, only needed in the '/' route for entire app
-		http.NotFound(w, r)
-		return
-	
+func Backup(w http.ResponseWriter, r *http.Request) {
+	sse := datastar.NewSSE(w, r)
+	var buf bytes.Buffer
+	for {
+		buf.Reset()
+		id := uuid.New()
+		replaceHTML := components.Replace("feed", id.String(), time.Now().UTC())
+		replaceHTML.Render(context.Background(), &buf)
+
+		sse.MergeFragments(fmt.Sprint(buf.String()),)
+		time.Sleep(1 * time.Second)
 	}
-	template.Home("Templ Quickstart").Render(ctx, w)
 }
+
 ```
 
-### Templates - ./internal/template/template.templ
+### Templates - ./internal/template/
 
-Our templates are included in this file. Here is the Base template discussed in the previous section. This function simply takes in a title and an array of templ.Component. For more info on templ syntax, please visit [Templ.guide](templ.guide)
+The template folder is used for subdirectories for each endpoint to localize all logic and components for that endpoint in a directory. All shared components are placed in the sharedComponents directory if they are used across endpoints. This is done using Templ templating language/
 
-To put very simple, Base is a 'base-level template' that can take in children. Then, we reuse base in our home template. Please note the sytax for passing children to @Base. Normally you'd expect to pass children as parameters, but with templ, you place children inside brackets.
+The base.templ in the sharedComponents is the Base webpage with the header and footer of every page and any required HTML/scrips/CSS is loaded or written here.
 
 ```html
 templ Base(title string) {
-    <html>
-        <head>
-            <meta charset="UTF-8"></meta>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0"></meta>
-            <script src="https://unpkg.com/htmx.org@1.9.11"></script>
-            <link rel="stylesheet" href="/static/css/output.css"></link>
-            <title>{title}</title>
-        </head>
-            @component.Banner()
-        <body>
-            <main class='p-6 grid gap-4'>
-                { children... }
-            </main>
-        </body>
-    </html>
-}
-
-templ Home(title string) {
-    @Base(title) {
-        @component.TextAndTitle("I'm a Component!", "I am included as a content item in the Base Template!")
-	    @component.TextAndTitle("I'm another Component!", "I am also included in the Base Template!")
-    }
+	<html>
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<link rel="stylesheet" href="/static/css/output.css"/>
+			<title>{ title }</title>
+			<script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-beta.1/bundles/datastar.js"></script>
+		</head>
+		@Banner()
+		<body>
+			<main class="p-6 grid gap-4">
+				{ children... }
+			</main>
+		</body>
+	</html>
 }
 ```
 
-Also note, htmx and your tailwind output are included in the head of this template:
+Also note, datastar and your tailwind output are included in the head of this template:
 
 ```html
-<script src="https://unpkg.com/htmx.org@1.9.11"></script>
+<script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-beta.1/bundles/datastar.js"></script>
 <link rel="stylesheet" href="/static/css/output.css"></link>
-```
-
-### Components - ./internal/component/component.templ
-
-Comonents are very similar to templates. Here is an example of the TextAndTitle component used in ./internal/view/view.go
-
-```html
-templ TextAndTitle(title string, text string) {
-    <div>
-        <h1 class='text-lg font-bold'>{title}</h1>
-        <p class='text-sm'>{text}</p>
-    </div>
-}
 ```
