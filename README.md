@@ -8,10 +8,9 @@ templ-quickstart provides a quick and easy way to scaffold an Go http server. Th
 
 As mentioned above, this project depends on some awesome technologies. Let me start by giving credit where credit is due:
 
-- [Go](https://go.dev/) - Version 1.22.0 or greater required
+- [Go](https://go.dev/) - Version 1.23 or greater required
 - [Templ](https://templ.guide/)
 - [Air](https://github.com/cosmtrek/air)
-- [Htmx](https://htmx.org/)
 - [Tailwindcss](https://tailwindcss.com/)
 
 ## Installation
@@ -71,6 +70,10 @@ air
 ```
 
 To configure air, you can modify .air.toml in the root of the project. (it will be auto-generated after the first time you run air in your repo)
+
+### Running all generation and hot reloading commands with a single task
+
+With the tasks.json file in the .vscode folder, you can open the VSCode Command Pallete with CTRL-Shift-P and select run task then 'Run all Dev tools'. This will format go and templ code then open a new integrated shell in VSCode for each command (go fmt, templ fmt, templ generate --watch, tailwind --watch, air).
 
 ## Project Overview
 
