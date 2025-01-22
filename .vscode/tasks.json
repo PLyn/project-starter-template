@@ -1,0 +1,51 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Format Go Code",
+      "type": "shell",
+      "command": "go fmt ./...",
+      "problemMatcher": []
+    },
+    {
+      "label": "Format Templ Code",
+      "type": "shell",
+      "command": "templ fmt .",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Templ Watch",
+      "type": "shell",
+      "command": "templ generate --watch",
+      "problemMatcher": [],
+      "isBackground": true
+    },
+    {
+      "label": "Run Tailwind Watch",
+      "type": "shell",
+      "command": "tailwindcss\\tailwindcss-windows-x64.exe -i ./static/css/input.css -o ./static/css/output.css --watch",
+      "problemMatcher": [],
+      "isBackground": true
+    },
+    {
+      "label": "Run Air",
+      "type": "shell",
+      "command": "air",
+      "problemMatcher": [],
+      "isBackground": true
+    },
+    {
+      "label": "Run All Dev Tools",
+      "type": "shell",
+      "dependsOrder": "parallel",
+      "dependsOn": [
+        "Format Templ Code",
+        "Format Go Code",
+        "Run Templ Watch",
+        "Run Tailwind Watch",
+        "Run Air"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}
