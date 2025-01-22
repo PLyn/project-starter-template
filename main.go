@@ -2,7 +2,7 @@ package main
 
 import (
 	"cloud/cmd/handlers"
-	"cloud/internal/SSE"
+	"cloud/cmd/sseHandlers"
 	"cloud/internal/middleware"
 	"cloud/utils"
 	"fmt"
@@ -19,8 +19,8 @@ func main() {
 	mux.HandleFunc("GET /favicon.ico", utils.ServeFavicon)
 	mux.HandleFunc("GET /static/", utils.ServeStaticFiles)
 
-	mux.Handle("/", middleware.AdaptHandler(handlers.MyHandler))
-	mux.HandleFunc("GET /feed", SSE.Backup)
+	mux.Handle("/backup", middleware.AdaptHandler(handlers.Backup))
+	mux.HandleFunc("GET /backupsse", sseHandlers.Backup)
 
 	fmt.Printf("server is running on port %s\n", os.Getenv("PORT"))
 	err := http.ListenAndServe("127.0.0.1:"+os.Getenv("PORT"), mux)

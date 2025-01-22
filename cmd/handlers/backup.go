@@ -7,7 +7,7 @@ import (
 )
 
 // Example function using CustomHandler type.
-func MyHandler(ctx *middleware.CustomContext, w http.ResponseWriter, r *http.Request) {
+func Backup(ctx *middleware.CustomContext, w http.ResponseWriter, r *http.Request) {
 	view(w, r)
 }
 

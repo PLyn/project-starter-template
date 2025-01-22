@@ -1,4 +1,4 @@
-package SSE
+package sseHandlers
 
 import (
 	"bytes"
