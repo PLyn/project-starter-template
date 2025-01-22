@@ -1,0 +1,41 @@
+package component
+
+import "time"
+
+templ Banner() {
+	<header class="p-6 flex flex-col justify-between">
+		<img src="/static/svg/logo.svg" class="h-20 w-20"/>
+	</header>
+}
+
+templ TextAndTitle(title string, text string) {
+	<div>
+		<h1 class="text-lg font-bold">{ title }</h1>
+		<p class="text-sm">{ text }</p>
+		<label>test</label>
+	</div>
+}
+
+templ Counter() {
+	<h1>Datastar </h1>
+	<h2>A live stream of random UUIDs sent from the server </h2>
+	<br/>
+	<br/>
+	<div data-signals-show="true">
+		<p>This button action is entirely client side</p>
+		<button data-on-click="$show=!$show">Show or Hide Live Stream</button>
+		<br/>
+		<br/>
+		<div data-show="$show">
+			<p>This feed is almost entirely server side. <br/> If you use the button to hide the feed, its still running in the background.</p>
+			<span id="feed" data-on-load="@get('/feed')" class="text-red-700 text-lg font-bold"></span>
+		</div>
+	</div>
+}
+
+templ Replace(id, uuid string, time time.Time) {
+	<div id={ id }>
+		<p id="feed_uuid" class="text-red-700 text-lg font-bold">{ uuid } </p>
+		<p id="feed_time">{ time.String() } </p>
+	</div>
+}

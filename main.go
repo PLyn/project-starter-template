@@ -1,13 +1,15 @@
 package main
 
 import (
+	"cloud/internal/SSE"
+	"cloud/internal/generate"
+	"cloud/internal/middleware"
+	"cloud/internal/template/backup"
+	"cloud/internal/template/home"
+	"cloud/internal/view"
 	"fmt"
 	"net/http"
 	"os"
-	"xerus/internal/generate"
-	"xerus/internal/middleware"
-	"xerus/internal/template"
-	"xerus/internal/view"
 
 	"github.com/joho/godotenv"
 )
@@ -30,11 +32,21 @@ func main() {
 			http.NotFound(w, r)
 			return
 		}
-		middleware.Chain(w, r, template.Home("Templ Quickstart"))
+		middleware.Chain(w, r, home.Template("Templ Quickstart"))
 	})
 
+	mux.HandleFunc("GET /backup", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/backup" {
+			http.NotFound(w, r)
+			return
+		}
+		middleware.Chain(w, r, backup.Template("Backup"))
+	})
+
+	mux.HandleFunc("GET /feed", SSE.Feed)
+
 	fmt.Printf("server is running on port %s\n", os.Getenv("PORT"))
-	err = http.ListenAndServe(":"+os.Getenv("PORT"), mux)
+	err = http.ListenAndServe("127.0.0.1:"+os.Getenv("PORT"), mux)
 	if err != nil {
 		fmt.Println(err)
 	}

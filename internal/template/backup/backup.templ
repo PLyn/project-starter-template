@@ -1,0 +1,13 @@
+package backup
+
+import component "cloud/internal/template/components"
+
+// route!("GET /backup")
+// middleware!(ParseForm)
+templ Template(title string) {
+	@component.Base(title) {
+		@component.TextAndTitle("I'm a Component!", "I am included as a content item in the Base Template!")
+		@component.TextAndTitle("I'm another Comp!", "I am also included in the Base Template!")
+		@component.Counter()
+	}
+}
